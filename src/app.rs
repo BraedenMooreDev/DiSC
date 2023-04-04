@@ -550,7 +550,6 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8,
             .show_x(false)
             .show_y(false)
             .allow_drag(false)
-            .allow_scroll(false)
             .allow_zoom(false)
             .allow_boxed_zoom(false)
             .x_axis_formatter(x_fmt)
@@ -598,7 +597,9 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8,
                 ui.end_row();
             });
 
-        ui.set_min_width(ui.available_width());
+        ui.add_space(25.0);
+        ui.set_min_width(ui.available_width() - 100.0);
+
         match currentHighlight {
 
             Choice::A => show_d_highlights(ui),
@@ -665,78 +666,408 @@ fn intensity_to_segment(val: i8) -> i8 {
 
 fn show_d_highlights(ui: &mut Ui) {
 
-    egui::ScrollArea::horizontal().show(ui, |ui| {
-        egui::Grid::new("Dominance")
-            .num_columns(5)
-            .min_col_width(ui.available_width() / 10.0)
-            .show(ui, |ui| {
+    ui.horizontal_wrapped(|ui| {
 
-                ui.small(RichText::new("DOMINANCE").strong());
-                ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
-                ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
-                ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
-                ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
-                ui.end_row();
+        ui.small(RichText::new("DOMINANCE").strong());
+        ui.end_row();
+        ui.small("Emphasis is on shaping the environment by overcoming opposition to accomplish results.");
+        ui.end_row();
+    });
 
-                ui.small("Emphasis is on shaping the environment by overcoming opposition to accomplish results.");
-                ui.small("• getting immediate results");
-                ui.small("• power and authority");
-                ui.small("• weigh pros and cons");
-                ui.small("• to receive difficult assignments");
-                ui.end_row();
+    ui.add_space(5.0);
+    ui.separator();
+    ui.add_space(5.0);
 
-                ui.small("");
-                ui.small("• causing action");
-                ui.small("• prestige and challenge");
-                ui.small("• calculate risks");
-                ui.small("• to understand that they need people");
-                ui.end_row();
+    ui.columns(4, |col| {
 
-                ui.small("");
-                ui.small("• accepting challanges");
-                ui.small("• opportunities for individual accomplishments");
-                ui.small("• use caution");
-                ui.small("• to base techniques on practical experience");
-                ui.end_row();
+        col[0].horizontal_wrapped(|ui| {
 
-                ui.small("");
-                ui.small("• making quick decisions");
-                ui.small("• a wipe scrope of operations");
-                ui.small("• create a predictable environment");
-                ui.small("• to receive an occasional shock");
-                ui.end_row();
+            ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• getting immediate results");
+            ui.end_row();
+            ui.small("• causing action");
+            ui.end_row();
+            ui.small("• accepting challanges");
+            ui.end_row();
+            ui.small("• making quick decisions");
+            ui.end_row();
+            ui.small("• questioning the status quo");
+            ui.end_row();
+            ui.small("• taking authority");
+            ui.end_row();
+            ui.small("• managing trouble");
+            ui.end_row();
+            ui.small("• solving problems");
+            ui.end_row();
+        });
+        
+        col[1].horizontal_wrapped(|ui| {
 
-                ui.small("");
-                ui.small("• questioning the status quo");
-                ui.small("• direct answers");
-                ui.small("• research facts");
-                ui.small("• to identify with a group");
-                ui.end_row();
+            ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• power and authority");
+            ui.end_row();
+            ui.small("• prestige and challenge");
+            ui.end_row();
+            ui.small("• opportunities for individual accomplishments");
+            ui.end_row();
+            ui.small("• a wipe scrope of operations");
+            ui.end_row();
+            ui.small("• direct answers");
+            ui.end_row();
+            ui.small("• opportunities for advancement");
+            ui.end_row();
+            ui.small("• freedom from controls and supervision");
+            ui.end_row();
+            ui.small("• many new and varied activities");
+            ui.end_row();
+        });
 
-                ui.small("");
-                ui.small("• taking authority");
-                ui.small("• opportunities for advancement");
-                ui.small("• deliberate before deciding");
-                ui.small("• to verbalize reasons for conclusions");
-                ui.end_row();
+        col[2].horizontal_wrapped(|ui| {
 
-                ui.small("");
-                ui.small("• managing trouble");
-                ui.small("• freedom from controls and supervision");
-                ui.small("• recognize the needs of others");
-                ui.small("• to be aware of existing sanctions");
-                ui.end_row();
+            ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• weigh pros and cons");
+            ui.end_row();
+            ui.small("• calculate risks");
+            ui.end_row();
+            ui.small("• use caution");
+            ui.end_row();
+            ui.small("• create a predictable environment");
+            ui.end_row();
+            ui.small("• research facts");
+            ui.end_row();
+            ui.small("• deliberate before deciding");
+            ui.end_row();
+            ui.small("• recognize the needs of others");
+            ui.end_row();
+        });
 
-                ui.small("");
-                ui.small("• solving problems");
-                ui.small("• many new and varied activities");
-                ui.small("");
-                ui.small("• to pace self and to relax more");
+        col[3].horizontal_wrapped(|ui| {
 
-            });
+            ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• to receive difficult assignments");
+            ui.end_row();
+            ui.small("• to understand that they need people");
+            ui.end_row();
+            ui.small("• to base techniques on practical experience");
+            ui.end_row();
+            ui.small("• to receive an occasional shock");
+            ui.end_row();
+            ui.small("• to identify with a group");
+            ui.end_row();
+            ui.small("• to verbalize reasons for conclusions");
+            ui.end_row();
+            ui.small("• to be aware of existing sanctions");
+            ui.end_row();
+            ui.small("• to pace self and to relax more");
+            ui.end_row();
+        });
     });
 }
 
-fn show_i_highlights(ui: &mut Ui) {}
-fn show_s_highlights(ui: &mut Ui) {}
-fn show_c_highlights(ui: &mut Ui) {}
+fn show_i_highlights(ui: &mut Ui) {
+
+    ui.horizontal_wrapped(|ui| {
+
+        ui.small(RichText::new("INFLUENCE").strong());
+        ui.end_row();
+        ui.small("Emphasis is on shaping the environment by influencing or persuading others.");
+        ui.end_row();
+    });
+
+    ui.add_space(5.0);
+    ui.separator();
+    ui.add_space(5.0);
+
+    ui.columns(4, |col| {
+
+        col[0].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• contacting people");
+            ui.end_row();
+            ui.small("• making a favorable impression");
+            ui.end_row();
+            ui.small("• being articulate");
+            ui.end_row();
+            ui.small("• creating a motivating environment");
+            ui.end_row();
+            ui.small("• generating enthusiasm");
+            ui.end_row();
+            ui.small("• entertaining people");
+            ui.end_row();
+            ui.small("• viewing people and situations with optimism");
+            ui.end_row();
+            ui.small("• participating in a group");
+            ui.end_row();
+        });
+        
+        col[1].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• popularity, social recognition");
+            ui.end_row();
+            ui.small("• public recognition of ability");
+            ui.end_row();
+            ui.small("• freedom of expression");
+            ui.end_row();
+            ui.small("• group activities outside of job");
+            ui.end_row();
+            ui.small("• democratic relationships");
+            ui.end_row();
+            ui.small("• freedom from control and detail");
+            ui.end_row();
+            ui.small("• opportunities to verbalize proposals");
+            ui.end_row();
+            ui.small("• coaching and counseling");
+            ui.end_row();
+            ui.small("• favorable working conditions");
+            ui.end_row();
+        });
+
+        col[2].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• concentrate on the task");
+            ui.end_row();
+            ui.small("• seek facts");
+            ui.end_row();
+            ui.small("• speak directly");
+            ui.end_row();
+            ui.small("• respect sincerity");
+            ui.end_row();
+            ui.small("• develop systematic approaches");
+            ui.end_row();
+            ui.small("• prefer to deal with things instead of people");
+            ui.end_row();
+            ui.small("• take a logical approach");
+            ui.end_row();
+            ui.small("• demonstrate individual follow-through");
+            ui.end_row();
+        });
+
+        col[3].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• to control time, if 'D' or 'S' is low");
+            ui.end_row();
+            ui.small("• to make objective decisions");
+            ui.end_row();
+            ui.small("• to use hands-on management");
+            ui.end_row();
+            ui.small("• to be more realistic when appraising others");
+            ui.end_row();
+            ui.small("• to make priorities and deadlines");
+            ui.end_row();
+            ui.small("• to be more firm with others, if D is low");
+            ui.end_row();
+        });
+    });
+}
+
+fn show_s_highlights(ui: &mut Ui) {
+
+    ui.horizontal_wrapped(|ui| {
+
+        ui.small(RichText::new("STEADINESS").strong());
+        ui.end_row();
+        ui.small("Emphasis is on cooperating with others within existing circumstances to carry out the task.");
+        ui.end_row();
+    });
+
+    ui.add_space(5.0);
+    ui.separator();
+    ui.add_space(5.0);
+
+    ui.columns(4, |col| {
+
+        col[0].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• performing in a consistent, predictable manner");
+            ui.end_row();
+            ui.small("• demonstrating patience");
+            ui.end_row();
+            ui.small("• developing specialized skills");
+            ui.end_row();
+            ui.small("• helping others");
+            ui.end_row();
+            ui.small("• showing loyalty");
+            ui.end_row();
+            ui.small("• being a good listener");
+            ui.end_row();
+            ui.small("• calming excited people");
+            ui.end_row();
+            ui.small("• creating a stable harmonious work environment");
+            ui.end_row();
+        });
+        
+        col[1].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• maintenance of the status quo unless given reasons for change");
+            ui.end_row();
+            ui.small("• predictable routines");
+            ui.end_row();
+            ui.small("• credit for work accomplished");
+            ui.end_row();
+            ui.small("• minimal work infringement on home life");
+            ui.end_row();
+            ui.small("• sincere appreciation");
+            ui.end_row();
+            ui.small("• identification with a group");
+            ui.end_row();
+            ui.small("• standard operating procedures");
+            ui.end_row();
+            ui.small("• minimal conflicts");
+            ui.end_row();
+        });
+
+        col[2].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• react quickly to unexpected change");
+            ui.end_row();
+            ui.small("• stretch toward the challenges of accepted tasks");
+            ui.end_row();
+            ui.small("• become involved in more than one thing");
+            ui.end_row();
+            ui.small("• are self-promoting");
+            ui.end_row();
+            ui.small("• apply pressure on others");
+            ui.end_row();
+            ui.small("• work comfortably in an unpredictable environment");
+            ui.end_row();
+            ui.small("• help to prioritize work");
+            ui.end_row();
+            ui.small("• are flexible in work procedures");
+            ui.end_row();
+        });
+
+        col[3].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• to be conditioned prior to change");
+            ui.end_row();
+            ui.small("• to validate self-worth");
+            ui.end_row();
+            ui.small("• to know how personal effort contributes to the group effort");
+            ui.end_row();
+            ui.small("• to have colleagues of similar competence and sincerity");
+            ui.end_row();
+            ui.small("• to know task guidelines");
+            ui.end_row();
+            ui.small("• to have creativity encouraged");
+            ui.end_row();
+        });
+    });
+}
+
+fn show_c_highlights(ui: &mut Ui) {
+
+    ui.horizontal_wrapped(|ui| {
+
+        ui.small(RichText::new("CONSCIENTIOUSNESS").strong());
+        ui.end_row();
+        ui.small("Emphasis is on working conscientiously within existing circumstances to ensure quality and accuracy.");
+        ui.end_row();
+    });
+
+    ui.add_space(5.0);
+    ui.separator();
+    ui.add_space(5.0);
+
+    ui.columns(4, |col| {
+
+        col[0].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• adhering to key directives and standards");
+            ui.end_row();
+            ui.small("• concentratingon key details");
+            ui.end_row();
+            ui.small("• thinking analytically, weighing pros and cons");
+            ui.end_row();
+            ui.small("• being diplomatic with people");
+            ui.end_row();
+            ui.small("• using subtle or indirect approaches to conflict");
+            ui.end_row();
+            ui.small("• checking for accuracy");
+            ui.end_row();
+            ui.small("• analyzing performance critically");
+            ui.end_row();
+            ui.small("• using a systematic approach to situations or activities");
+            ui.end_row();
+        });
+        
+        col[1].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• clearly defined performance expectations");
+            ui.end_row();
+            ui.small("• values of quality and accuracy");
+            ui.end_row();
+            ui.small("• a reserved, business-like atmosphere");
+            ui.end_row();
+            ui.small("• opportunities to demonstrate expertise");
+            ui.end_row();
+            ui.small("• control over factors that affect their performance");
+            ui.end_row();
+            ui.small("• opportunities to ask \"why\" questions");
+            ui.end_row();
+            ui.small("• recognition for specific skills and accomplishments");
+            ui.end_row();
+        });
+
+        col[2].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• delegate important tasks");
+            ui.end_row();
+            ui.small("• make quick decisions");
+            ui.end_row();
+            ui.small("• use policies only as guidelines");
+            ui.end_row();
+            ui.small("• compromise with the opposition");
+            ui.end_row();
+            ui.small("• state unpopular positions");
+            ui.end_row();
+            ui.small("• initiate and facilitate discussions");
+            ui.end_row();
+            ui.small("• encourage teamwork");
+            ui.end_row();
+        });
+
+        col[3].horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+            ui.small("• to have time to plan carefully");
+            ui.end_row();
+            ui.small("• to know exact job descriptions and performance objectives");
+            ui.end_row();
+            ui.small("• to schedule performance appraisals");
+            ui.end_row();
+            ui.small("• to receieve specific feedback on performance");
+            ui.end_row();
+            ui.small("• to respect people's personal worth as much as their accomplishments");
+            ui.end_row();
+            ui.small("• to develop tolerance for conflict");
+            ui.end_row();
+        });
+    });
+}
