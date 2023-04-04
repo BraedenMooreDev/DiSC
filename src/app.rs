@@ -1,23 +1,20 @@
 use std::{fmt::Debug, f64::consts::E};
-use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32};
+use eframe::epaint::RectShape;
+use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32, Style, Rect, Shape, Sense};
 
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum Choice { A = 0, B = 1, C = 2, D = 3, E = 4, NONE = 5}
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-enum Page { Response = 0, Graphs = 1, Highlights = 2, Intensity = 3, Profile = 4}
+enum Page { Response = 0, Results = 1, Settings = 2}
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
 
-    fontHeadingSize: f32,
-    fontBodySize: f32,
-    fontMonospaceSize: f32,
-    fontButtonSize: f32,
-    fontSmallSize: f32,
+    fontSizes: (f32, f32, f32, f32, f32), // Heading, Body, Monospace, Button, Small
 
     #[serde(skip)]
     currentPage: Page,
@@ -41,11 +38,7 @@ impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             // Example stuff:
-            fontHeadingSize: 30.0,
-            fontBodySize: 18.0,
-            fontMonospaceSize: 14.0,
-            fontButtonSize: 14.0,
-            fontSmallSize: 10.0,
+            fontSizes: (30.0, 18.0, 14.0, 14.0, 10.0),
             currentPage: Page::Response,
             questions: vec![
                 vec![("enthusiastic".to_string(), Choice::B, Choice::B),
@@ -248,7 +241,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { fontHeadingSize, fontBodySize, fontMonospaceSize, fontButtonSize, fontSmallSize, currentPage, questions , responses , tally, intensity} = self;
+        let Self { fontSizes, currentPage, questions , responses , tally, intensity} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -269,59 +262,45 @@ impl eframe::App for TemplateApp {
 
         let mut style = (*ctx.style()).clone();
         style.text_styles = [
-            (TextStyle::Heading, FontId::new(*fontHeadingSize, egui::FontFamily::Proportional)),
-            (TextStyle::Body, FontId::new(*fontBodySize, egui::FontFamily::Proportional)),
-            (TextStyle::Monospace, FontId::new(*fontMonospaceSize, egui::FontFamily::Proportional)),
-            (TextStyle::Button, FontId::new(*fontButtonSize, egui::FontFamily::Proportional)),
-            (TextStyle::Small, FontId::new(*fontSmallSize, egui::FontFamily::Proportional))
+            (TextStyle::Heading, FontId::new(fontSizes.0, egui::FontFamily::Proportional)),
+            (TextStyle::Body, FontId::new(fontSizes.1, egui::FontFamily::Proportional)),
+            (TextStyle::Monospace, FontId::new(fontSizes.2, egui::FontFamily::Proportional)),
+            (TextStyle::Button, FontId::new(fontSizes.3, egui::FontFamily::Proportional)),
+            (TextStyle::Small, FontId::new(fontSizes.4, egui::FontFamily::Proportional))
 
         ].into();
         ctx.set_style(style);
 
-        egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("DiSC Program");
-            ui.separator();
-
-            if ui.small_button("Response Page").clicked() { *currentPage = Page::Response; }
-            if ui.small_button("Graphs Page").clicked() { *currentPage = Page::Graphs; process_intensity(intensity, tally); }
-            if ui.small_button("Highlights Page").clicked() { *currentPage = Page::Highlights; process_intensity(intensity, tally); }
-            if ui.small_button("Intensity Page").clicked() { *currentPage = Page::Intensity; process_intensity(intensity, tally); }
-            if ui.small_button("Profile Page").clicked() { *currentPage = Page::Profile; process_intensity(intensity, tally); }
-            ui.separator();
-
-            ui.collapsing("Instructions", |ui| {
-                
-                match *currentPage {
-                    Page::Response => show_response_instructions(ui),
-                    Page::Graphs => show_graphs_instructions(ui),
-                    Page::Highlights => show_highlights_instructions(ui),
-                    Page::Intensity => show_intensity_instructions(ui),
-                    Page::Profile => show_profile_instructions(ui)
-                }
-            });
-
-            ui.collapsing("Settings", |ui| {
-
-                ui.collapsing("Font Sizes", |ui| {
-
-                    ui.add(egui::Slider::new(fontHeadingSize, 8.0..=32.0).text("Heading"));
-                    ui.add(egui::Slider::new(fontBodySize, 8.0..=32.0).text("Body"));
-                    ui.add(egui::Slider::new(fontMonospaceSize, 8.0..=32.0).text("Monospace"));
-                    ui.add(egui::Slider::new(fontButtonSize, 8.0..=32.0).text("Button"));
-                    ui.add(egui::Slider::new(fontSmallSize, 8.0..=32.0).text("Small"));
-                });
-            });
-        });
-
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
+            ui.heading("DiSC Program");
+            ui.separator();
+
+            ui.horizontal(|ui| {
+                if ui.selectable_label(*currentPage == Page::Response, "Response Page").clicked() { *currentPage = Page::Response; }
+                if ui.selectable_label(*currentPage == Page::Results, "Results Page").clicked() { *currentPage = Page::Results; process(responses, tally, intensity); }
+                if ui.selectable_label(*currentPage == Page::Settings, "Settings Page").clicked() { *currentPage = Page::Settings; }
+            });
+
+            ui.collapsing(RichText::new("Instructions").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
+
+                match *currentPage {
+                    Page::Response => show_response_instructions(ui),
+                    Page::Results => show_results_instructions(ui),
+                    _ => ()
+                }
+            });
+
+            ui.separator();
+            ui.add_space(20.0);
+
+            ui.set_min_width(ui.available_width());
+
             match currentPage {
                 Page::Response => show_response_page(questions, responses, tally, intensity, ctx, ui),
-                Page::Graphs => show_graphs_page(tally, intensity, ui),
-                Page::Highlights => show_highlights_page(intensity, ui),
-                Page::Intensity => show_intensity_page(intensity, ui),
-                Page::Profile => show_profile_page(intensity, ui)
+                Page::Results => show_results_page(tally, intensity, ui),
+                Page::Settings => show_settings_page(fontSizes, ui)
             }
         });
 
@@ -338,11 +317,15 @@ impl eframe::App for TemplateApp {
 
 fn show_response_page(questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
 
+    ui.set_min_width(ui.available_width());
+
     egui::ScrollArea::vertical().show(ui, |ui| {
+
+        ui.set_min_width(ui.available_width());
 
         egui::Grid::new("Response Page ".to_owned())
         .striped(true)
-        .spacing(Vec2 {x: 0.0, y: 0.0})
+        .spacing(Vec2 {x: 10.0, y: 0.0})
         .min_row_height(4.0)
         .show(ui, |ui|{
 
@@ -351,20 +334,21 @@ fn show_response_page(questions: &mut Vec<Vec<(String, Choice, Choice)>>, respon
                 if i == 0 {
 
                     ui.label("");
-                    ui.label("MOST");
-                    ui.label("LEAST");
+                    ui.label(RichText::new("MOST").color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("LEAST").color(Color32::from_rgb(137, 207, 240)));
                     ui.end_row();
                 }
                 
-                ui.label((i + 1).to_string().to_owned());
+                ui.label(RichText::new((i + 1).to_string().to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
 
                 for j in 0..questions[i].len() {
 
                     ui.end_row();
+                    ui.add_space(10.0);
                     ui.label(questions[i][j].0.to_owned());
                     ui.add_space(10.0);
-                    if ui.radio_value(&mut responses[i].0, questions[i][j].1, "").changed() { process_responses(tally, (questions[i][j].1, Choice::NONE)); }
-                    if ui.radio_value(&mut responses[i].1, questions[i][j].2, "").changed() { process_responses(tally, (Choice::NONE, questions[i][j].2)); }
+                    ui.radio_value(&mut responses[i].0, questions[i][j].1, "");
+                    ui.radio_value(&mut responses[i].1, questions[i][j].2, "");
                     ui.end_row();
                 }
 
@@ -456,18 +440,19 @@ fn show_response_instructions(ui: &mut Ui) {
 
             egui::Grid::new("Example 1".to_owned())
                 .striped(true)
-                .spacing(Vec2 {x: 0.0, y: 0.0})
+                .spacing(Vec2 {x: 10.0, y: 0.0})
                 .min_row_height(4.0)
                 .show(ui, |ui|{
 
                     ui.label("");
-                    ui.label("MOST");
-                    ui.label("LEAST");
+                    ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
                     ui.end_row();
 
-                    ui.label("1".to_owned());
+                    ui.label(RichText::new("1".to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
 
                     ui.end_row();
+                    ui.add_space(10.0);
                     ui.label("enthusiastic".to_owned());
                     ui.add_space(10.0);
                     ui.radio(true, "");
@@ -475,6 +460,7 @@ fn show_response_instructions(ui: &mut Ui) {
                     ui.end_row();
 
                     ui.end_row();
+                    ui.add_space(10.0);
                     ui.label("daring".to_owned());
                     ui.add_space(10.0);
                     ui.radio(false, "");
@@ -482,6 +468,7 @@ fn show_response_instructions(ui: &mut Ui) {
                     ui.end_row();
 
                     ui.end_row();
+                    ui.add_space(10.0);
                     ui.label("diplomatic".to_owned());
                     ui.add_space(10.0);
                     ui.radio(false, "");
@@ -489,6 +476,7 @@ fn show_response_instructions(ui: &mut Ui) {
                     ui.end_row();
 
                     ui.end_row();
+                    ui.add_space(10.0);
                     ui.label("satisfied".to_owned());
                     ui.add_space(10.0);
                     ui.radio(false, "");
@@ -499,7 +487,7 @@ fn show_response_instructions(ui: &mut Ui) {
     });
 }
 
-fn show_graphs_page(tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_results_page(tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {
 
@@ -511,44 +499,46 @@ fn show_graphs_page(tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i
     });
 }
 
-fn show_graphs_instructions(ui: &mut Ui) {}
+fn show_results_instructions(ui: &mut Ui) {}
 
-fn show_highlights_page(intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {}
+fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
 
-fn show_highlights_instructions(ui: &mut Ui) {}
-
-fn show_intensity_page(intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {}
-
-fn show_intensity_instructions(ui: &mut Ui) {}
-
-fn show_profile_page(intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {}
-
-fn show_profile_instructions(ui: &mut Ui) {}
+    ui.add(egui::Slider::new(&mut fontSizes.0, 8.0..=32.0).text("Heading"));
+    ui.add(egui::Slider::new(&mut fontSizes.1, 8.0..=32.0).text("Body"));
+    //ui.add(egui::Slider::new(&mut fontSizes.2, 8.0..=32.0).text("Monospace"));
+    ui.add(egui::Slider::new(&mut fontSizes.3, 8.0..=32.0).text("Button"));
+    //ui.add(egui::Slider::new(&mut fontSizes.4, 8.0..=32.0).text("Small"));
+}
 
 // Helper Functions
 
-fn process_responses(tally: &mut (i8, i8, i8, i8), response: (Choice, Choice)) {
-    
-    match response.0 {
+fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8)) {
 
-        Choice::A => tally.0 += 1,
-        Choice::B => tally.1 += 1,
-        Choice::C => tally.2 += 1,
-        Choice::D => tally.3 += 1,
-        _ => (),
+    tally.0 = 0;
+    tally.1 = 0;
+    tally.2 = 0;
+    tally.3 = 0;
+
+    for response in responses {
+
+        match response.0 {
+
+            Choice::A => tally.0 += 1,
+            Choice::B => tally.1 += 1,
+            Choice::C => tally.2 += 1,
+            Choice::D => tally.3 += 1,
+            _ => ()
+        }
+
+        match response.1 {
+
+            Choice::A => tally.0 -= 1,
+            Choice::B => tally.1 -= 1,
+            Choice::C => tally.2 -= 1,
+            Choice::D => tally.3 -= 1,
+            _ => ()
+        }
     }
-
-    match response.1 {
-
-        Choice::A => tally.0 -= 1,
-        Choice::B => tally.1 -= 1,
-        Choice::C => tally.2 -= 1,
-        Choice::D => tally.3 -= 1,
-        _ => (),
-    }
-}
-
-fn process_intensity(intensity: &mut (i8, i8, i8, i8), tally: &mut (i8, i8, i8, i8)) {
 
     intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))) as i8; // Logistic Regression
     intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(0.2464025952 * tally.1 as f64))) as i8; // Logistic Regression
