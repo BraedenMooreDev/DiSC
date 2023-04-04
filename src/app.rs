@@ -38,10 +38,10 @@ pub struct TemplateApp {
     responses: Vec<(Choice, Choice)>,
 
     #[serde(skip)]
-    tally: (u8, u8, u8, u8),
+    tally: (i8, i8, i8, i8),
 
     #[serde(skip)]
-    intensity: (u8, u8, u8, u8),
+    intensity: (i8, i8, i8, i8),
 
     #[serde(skip)]
     profiles: Vec<Profile>,
@@ -336,7 +336,7 @@ impl eframe::App for TemplateApp {
     }
 }
 
-fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8), ctx: &Context, ui: &mut Ui) {
+fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {
 
@@ -519,7 +519,7 @@ fn show_response_instructions(ui: &mut Ui) {
 
 }
 
-fn show_results_page(currentHighlight: &mut Choice, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {      
 
@@ -680,7 +680,7 @@ fn show_results_page(currentHighlight: &mut Choice, tally: &mut (u8, u8, u8, u8)
 
         ui.collapsing(RichText::new("Profile Pattern").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
 
-            let seg: (u8, u8, u8, u8) = (intensity_to_segment(intensity.0),
+            let seg: (i8, i8, i8, i8) = (intensity_to_segment(intensity.0),
                                         intensity_to_segment(intensity.1),
                                         intensity_to_segment(intensity.2),
                                         intensity_to_segment(intensity.3));
@@ -690,7 +690,7 @@ fn show_results_page(currentHighlight: &mut Choice, tally: &mut (u8, u8, u8, u8)
     });
 }
 
-fn show_profile_section(intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
+fn show_profile_section(intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
 
 }
@@ -706,7 +706,7 @@ fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
 
 // Helper Functions
 
-fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8)) {
+fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8)) {
 
     tally.0 = 0;
     tally.1 = 0;
@@ -734,18 +734,18 @@ fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (u8, u8, u8, u8), 
         }
     }
 
-    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
-    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(-0.2464025952 * tally.1 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
-    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(-0.1941614665  * tally.2 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
-    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(-0.2479183241  * tally.3 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
+    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))).clamp(1.0, 28.0) as i8; // Logistic Regression
+    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(-0.2464025952 * tally.1 as f64))).clamp(1.0, 28.0) as i8; // Logistic Regression
+    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(-0.1941614665  * tally.2 as f64))).clamp(1.0, 28.0) as i8; // Logistic Regression
+    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(-0.2479183241  * tally.3 as f64))).clamp(1.0, 28.0) as i8; // Logistic Regression
 }
 
-fn intensity_to_segment(val: u8) -> u8 {
+fn intensity_to_segment(val: i8) -> i8 {
 
     return ((val - 1) / 4) + 1;
 }
 
-fn profilePatternLookup(profiles: Vec<Profile>, seg: (u8, u8, u8, u8)) -> Profile {
+fn profilePatternLookup(profiles: Vec<Profile>, seg: (i8, i8, i8, i8)) -> Profile {
 
     let firstDigit: u16 = seg.0 as u16 * 1000;
     let secondDigit: u16 = seg.1 as u16 * 100;
