@@ -320,7 +320,7 @@ impl eframe::App for TemplateApp {
 
             match currentPage {
                 Page::Response => show_response_page(currentPage, questions, responses, tally, intensity, ctx, ui),
-                Page::Results => show_results_page(currentHighlight, intensity, ui),
+                Page::Results => show_results_page(currentHighlight, tally, intensity, ui),
                 Page::Settings => show_settings_page(fontSizes, ui)
             }
         });
@@ -376,7 +376,7 @@ fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, C
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
             ui.add_space(50.0);
-            if ui.button("Next").clicked() { *currentPage = Page::Results; }
+            if ui.button("Next").clicked() { *currentPage = Page::Results; process(responses, tally, intensity); }
         });
 
         ui.add_space(20.0);
@@ -519,7 +519,7 @@ fn show_response_instructions(ui: &mut Ui) {
 
 }
 
-fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {      
 
@@ -627,6 +627,14 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (u8, u8, u8,
                 if ui.selectable_label(*currentHighlight == Choice::B, RichText::new("i").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::B { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::B; }};
                 if ui.selectable_label(*currentHighlight == Choice::C, RichText::new("S").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::C { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::C; }};
                 if ui.selectable_label(*currentHighlight == Choice::D, RichText::new("C").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::D { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::D; }};
+
+                ui.end_row();
+
+                ui.label(RichText::new("Tally"));
+                ui.label(&tally.0.to_string());
+                ui.label(&tally.1.to_string());
+                ui.label(&tally.2.to_string());
+                ui.label(&tally.3.to_string());
 
                 ui.end_row();
 
