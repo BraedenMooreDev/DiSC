@@ -1,6 +1,6 @@
-use std::{fmt::Debug, f64::consts::E};
+use std::{fmt::Debug, f64::consts::E, ops::RangeInclusive};
 use eframe::epaint::RectShape;
-use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32, Style, Rect, Shape, Sense};
+use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32, Style, Rect, Shape, Sense, plot::{Plot, Points, PlotPoints, PlotPoint, Line, PlotBounds, GridMark, GridInput}, accesskit::Point, Pos2};
 
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -19,6 +19,8 @@ pub struct TemplateApp {
     #[serde(skip)]
     currentPage: Page,
     
+    #[serde(skip)]
+    currentHighlight: Choice,
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     questions: Vec<Vec<(String, Choice, Choice)>>,
@@ -31,7 +33,6 @@ pub struct TemplateApp {
 
     #[serde(skip)]
     intensity: (i8, i8, i8, i8)
-
 }
 
 impl Default for TemplateApp {
@@ -40,6 +41,7 @@ impl Default for TemplateApp {
             // Example stuff:
             fontSizes: (30.0, 18.0, 14.0, 14.0, 10.0),
             currentPage: Page::Response,
+            currentHighlight: Choice::NONE,
             questions: vec![
                 vec![("enthusiastic".to_string(), Choice::B, Choice::B),
                     ("daring".to_string(), Choice::A, Choice::A),
@@ -241,7 +243,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { fontSizes, currentPage, questions , responses , tally, intensity} = self;
+        let Self { fontSizes, currentPage, currentHighlight, questions , responses , tally, intensity} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -298,8 +300,8 @@ impl eframe::App for TemplateApp {
             ui.set_min_width(ui.available_width());
 
             match currentPage {
-                Page::Response => show_response_page(questions, responses, tally, intensity, ctx, ui),
-                Page::Results => show_results_page(tally, intensity, ui),
+                Page::Response => show_response_page(currentPage, questions, responses, tally, intensity, ctx, ui),
+                Page::Results => show_results_page(currentHighlight, intensity, ui),
                 Page::Settings => show_settings_page(fontSizes, ui)
             }
         });
@@ -315,13 +317,9 @@ impl eframe::App for TemplateApp {
     }
 }
 
-fn show_response_page(questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
-
-    ui.set_min_width(ui.available_width());
+fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {
-
-        ui.set_min_width(ui.available_width());
 
         egui::Grid::new("Response Page ".to_owned())
         .striped(true)
@@ -356,10 +354,19 @@ fn show_response_page(questions: &mut Vec<Vec<(String, Choice, Choice)>>, respon
                 ui.end_row();
             }
         });
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
+            ui.add_space(50.0);
+            if ui.button("Next").clicked() { *currentPage = Page::Results; }
+        });
+
+        ui.add_space(20.0);
     });
 }
 
 fn show_response_instructions(ui: &mut Ui) {
+
+    ui.add_space(10.0);
 
     egui::ScrollArea::vertical().show(ui, |ui| {
 
@@ -485,17 +492,122 @@ fn show_response_instructions(ui: &mut Ui) {
                 });
         });
     });
+
+    ui.add_space(10.0);
+
 }
 
-fn show_results_page(tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
+    egui::ScrollArea::vertical().show(ui, |ui| {      
 
-        ui.label("D  Tally: ".to_owned() + &tally.0.to_string() + "  Intensity: " + &intensity.0.to_string() + "  Segment: " + &intensity_to_segment(intensity.0).to_string());
-        ui.label("i  Tally: ".to_owned() + &tally.1.to_string() + "  Intensity: " + &intensity.1.to_string() + "  Segment: " + &intensity_to_segment(intensity.1).to_string());
-        ui.label("S  Tally: ".to_owned() + &tally.2.to_string() + "  Intensity: " + &intensity.2.to_string() + "  Segment: " + &intensity_to_segment(intensity.2).to_string());
-        ui.label("C  Tally: ".to_owned() + &tally.3.to_string() + "  Intensity: " + &intensity.3.to_string() + "  Segment: " + &intensity_to_segment(intensity.3).to_string());
+        let x_fmt = |x, _range: &RangeInclusive<f64>| {
 
+            let mut str = "".to_owned();
+
+            if x == 1.0 {
+                str = "D".to_owned();
+            } else if x == 2.0 {
+                str = "i".to_owned();
+            } else if x == 3.0 {
+                str = "S".to_owned();
+            } else if x == 4.0 {
+                str = "C".to_owned();
+            } else {
+                return String::new();
+            }
+            
+            return str.to_owned();
+        };
+
+        let y_fmt = |y, _range: &RangeInclusive<f64>| {
+
+            if y >= 1.0 && y <= 28.0 {
+                return format!("{}", y);
+            } else {
+                return String::new();
+            }
+        };
+
+        let y_spacer = |m: GridInput| {
+
+            return vec![
+
+                GridMark {value: 1.0, step_size: 4.0},
+                GridMark {value: 5.0, step_size: 4.0},
+                GridMark {value: 9.0, step_size: 4.0},
+                GridMark {value: 13.0, step_size: 4.0},
+                GridMark {value: 17.0, step_size: 4.0},
+                GridMark {value: 21.0, step_size: 4.0},
+                GridMark {value: 25.0, step_size: 4.0},
+                GridMark {value: 28.0, step_size: 1.0},
+            ]
+        };
+
+        Plot::new("Graph")
+            .data_aspect(6.5 / 28.0)
+            .view_aspect(0.75)
+            .show_x(false)
+            .show_y(false)
+            .allow_drag(false)
+            .allow_scroll(false)
+            .allow_zoom(false)
+            .allow_boxed_zoom(false)
+            .x_axis_formatter(x_fmt)
+            .y_axis_formatter(y_fmt)
+            .y_grid_spacer(y_spacer)
+            .show(ui, |plot_ui| {
+
+                let series: PlotPoints = PlotPoints::Owned(vec![PlotPoint::new(1, intensity.0), PlotPoint::new(2, intensity.1), PlotPoint::new(3, intensity.2), PlotPoint::new(4, intensity.3)]);
+                let line: egui::plot::Line = Line::new(series);                
+                plot_ui.line(line);
+
+                plot_ui.set_plot_bounds(PlotBounds::from_min_max([0.0, 0.0], [4.5, 28.0]));
+            });
+
+        ui.set_min_width(ui.available_width());
+        egui::Grid::new("Numbers")
+            .num_columns(5)
+            .striped(true)
+            .min_row_height(30.0)
+            .min_col_width(ui.available_width() / 5.0)
+            .show(ui, |ui| {
+
+                ui.label("");
+                if ui.selectable_label(*currentHighlight == Choice::A, RichText::new("D").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::A { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::A; }};
+                if ui.selectable_label(*currentHighlight == Choice::B, RichText::new("i").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::B { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::B; }};
+                if ui.selectable_label(*currentHighlight == Choice::C, RichText::new("S").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::C { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::C; }};
+                if ui.selectable_label(*currentHighlight == Choice::D, RichText::new("C").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::D { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::D; }};
+
+                ui.end_row();
+
+                ui.label(RichText::new("Intensity"));
+                ui.label(&intensity.0.to_string());
+                ui.label(&intensity.1.to_string());
+                ui.label(&intensity.2.to_string());
+                ui.label(&intensity.3.to_string());
+
+                ui.end_row();
+
+                ui.label(RichText::new("Segment"));
+                ui.label(&intensity_to_segment(intensity.0).to_string());
+                ui.label(&intensity_to_segment(intensity.1).to_string());
+                ui.label(&intensity_to_segment(intensity.2).to_string());
+                ui.label(&intensity_to_segment(intensity.3).to_string());
+
+                ui.end_row();
+            });
+
+        ui.set_min_width(ui.available_width());
+        match currentHighlight {
+
+            Choice::A => show_d_highlights(ui),
+            Choice::B => show_i_highlights(ui),
+            Choice::C => show_s_highlights(ui),
+            Choice::D => show_c_highlights(ui),
+            _ => ()
+
+        }
     });
 }
 
@@ -507,7 +619,7 @@ fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
     ui.add(egui::Slider::new(&mut fontSizes.1, 8.0..=32.0).text("Body"));
     //ui.add(egui::Slider::new(&mut fontSizes.2, 8.0..=32.0).text("Monospace"));
     ui.add(egui::Slider::new(&mut fontSizes.3, 8.0..=32.0).text("Button"));
-    //ui.add(egui::Slider::new(&mut fontSizes.4, 8.0..=32.0).text("Small"));
+    ui.add(egui::Slider::new(&mut fontSizes.4, 8.0..=32.0).text("Small"));
 }
 
 // Helper Functions
@@ -540,13 +652,91 @@ fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), 
         }
     }
 
-    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))) as i8; // Logistic Regression
-    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(0.2464025952 * tally.1 as f64))) as i8; // Logistic Regression
-    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(0.1941614665  * tally.2 as f64))) as i8; // Logistic Regression
-    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(0.2479183241  * tally.3 as f64))) as i8; // Logistic Regression
+    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
+    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(-0.2464025952 * tally.1 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
+    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(-0.1941614665  * tally.2 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
+    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(-0.2479183241  * tally.3 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
 }
 
 fn intensity_to_segment(val: i8) -> i8 {
 
     return ((val - 1) / 4) + 1;
 }
+
+fn show_d_highlights(ui: &mut Ui) {
+
+    egui::ScrollArea::horizontal().show(ui, |ui| {
+        egui::Grid::new("Dominance")
+            .num_columns(5)
+            .min_col_width(ui.available_width() / 10.0)
+            .show(ui, |ui| {
+
+                ui.small(RichText::new("DOMINANCE").strong());
+                ui.small(RichText::new("This person's tendencies include").color(Color32::from_rgb(137, 207, 240)));
+                ui.small(RichText::new("This person desires an environment that includes").color(Color32::from_rgb(137, 207, 240)));
+                ui.small(RichText::new("This person needs others who").color(Color32::from_rgb(137, 207, 240)));
+                ui.small(RichText::new("To be more effective, this person needs").color(Color32::from_rgb(137, 207, 240)));
+                ui.end_row();
+
+                ui.small("Emphasis is on shaping the environment by overcoming opposition to accomplish results.");
+                ui.small("• getting immediate results");
+                ui.small("• power and authority");
+                ui.small("• weigh pros and cons");
+                ui.small("• to receive difficult assignments");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• causing action");
+                ui.small("• prestige and challenge");
+                ui.small("• calculate risks");
+                ui.small("• to understand that they need people");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• accepting challanges");
+                ui.small("• opportunities for individual accomplishments");
+                ui.small("• use caution");
+                ui.small("• to base techniques on practical experience");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• making quick decisions");
+                ui.small("• a wipe scrope of operations");
+                ui.small("• create a predictable environment");
+                ui.small("• to receive an occasional shock");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• questioning the status quo");
+                ui.small("• direct answers");
+                ui.small("• research facts");
+                ui.small("• to identify with a group");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• taking authority");
+                ui.small("• opportunities for advancement");
+                ui.small("• deliberate before deciding");
+                ui.small("• to verbalize reasons for conclusions");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• managing trouble");
+                ui.small("• freedom from controls and supervision");
+                ui.small("• recognize the needs of others");
+                ui.small("• to be aware of existing sanctions");
+                ui.end_row();
+
+                ui.small("");
+                ui.small("• solving problems");
+                ui.small("• many new and varied activities");
+                ui.small("");
+                ui.small("• to pace self and to relax more");
+
+            });
+    });
+}
+
+fn show_i_highlights(ui: &mut Ui) {}
+fn show_s_highlights(ui: &mut Ui) {}
+fn show_c_highlights(ui: &mut Ui) {}
