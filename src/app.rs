@@ -8,6 +8,15 @@ enum Choice { A = 0, B = 1, C = 2, D = 3, E = 4, NONE = 5}
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum Page { Response = 0, Results = 1, Settings = 2}
+
+#[derive(PartialEq, Clone, Debug)]
+struct Profile {
+    name: String,
+    aspects: Vec<(String, String)>,
+    content: String,
+    patterns: Vec<u16>
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -29,10 +38,16 @@ pub struct TemplateApp {
     responses: Vec<(Choice, Choice)>,
 
     #[serde(skip)]
-    tally: (i8, i8, i8, i8),
+    tally: (u8, u8, u8, u8),
 
     #[serde(skip)]
-    intensity: (i8, i8, i8, i8)
+    intensity: (u8, u8, u8, u8),
+
+    #[serde(skip)]
+    profiles: Vec<Profile>,
+
+    #[serde(skip)]
+    currentProfile: Profile
 }
 
 impl Default for TemplateApp {
@@ -213,7 +228,14 @@ impl Default for TemplateApp {
                             (Choice::NONE, Choice::NONE)],
 
             tally: (0, 0, 0, 0),
-            intensity: (0, 0, 0, 0)
+            intensity: (1, 1, 1, 1),
+
+            profiles: vec![Profile {name: "Achiever".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is industrious and diligent; displays frustration".to_owned())],
+                                    content: "The motivation of Achievers is largely internal and flows from deeply felt personal goals.".to_owned(),
+                                    patterns: vec![7674, 7674, 7672]}],
+
+            currentProfile: Profile { name: "".to_owned(), aspects: vec![], content: "".to_owned() , patterns: vec![] }
         }
     }
 }
@@ -243,7 +265,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { fontSizes, currentPage, currentHighlight, questions , responses , tally, intensity} = self;
+        let Self { fontSizes, currentPage, currentHighlight, questions , responses , tally, intensity, profiles, currentProfile} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -271,6 +293,7 @@ impl eframe::App for TemplateApp {
             (TextStyle::Small, FontId::new(fontSizes.4, egui::FontFamily::Proportional))
 
         ].into();
+        style.visuals.hyperlink_color = style.visuals.text_color();
         ctx.set_style(style);
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -285,14 +308,10 @@ impl eframe::App for TemplateApp {
                 if ui.selectable_label(*currentPage == Page::Settings, "Settings Page").clicked() { *currentPage = Page::Settings; }
             });
 
-            ui.collapsing(RichText::new("Instructions").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
-
-                match *currentPage {
-                    Page::Response => show_response_instructions(ui),
-                    Page::Results => show_results_instructions(ui),
-                    _ => ()
-                }
-            });
+            match *currentPage {
+                Page::Response => show_response_instructions(ui),
+                _ => ()
+            }
 
             ui.separator();
             ui.add_space(20.0);
@@ -317,7 +336,7 @@ impl eframe::App for TemplateApp {
     }
 }
 
-fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
+fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8), ctx: &Context, ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {
 
@@ -343,7 +362,7 @@ fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, C
 
                     ui.end_row();
                     ui.add_space(10.0);
-                    ui.label(questions[i][j].0.to_owned());
+                    ui.hyperlink_to(questions[i][j].0.to_owned(), "https://www.dictionary.com/browse/".to_owned() + &questions[i][j].0.to_owned());
                     ui.add_space(10.0);
                     ui.radio_value(&mut responses[i].0, questions[i][j].1, "");
                     ui.radio_value(&mut responses[i].1, questions[i][j].2, "");
@@ -366,138 +385,141 @@ fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, C
 
 fn show_response_instructions(ui: &mut Ui) {
 
-    ui.add_space(10.0);
+    ui.collapsing(RichText::new("Instructions").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
+        ui.add_space(10.0);
 
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("1)").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("Responding").color(Color32::from_rgb(137, 207, 240)));
-        });
-        ui.add_space(15.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("A.").strong());
-            ui.label(RichText::new("Study the first group of four words on the left while thinking about yourself in your selected setting or focus."));
+        egui::ScrollArea::vertical().show(ui, |ui| {
 
-        });
-        ui.add_space(15.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("B.").strong());
-            ui.add_space(5.0);
-            ui.label(RichText::new("Select"));
-            ui.label(RichText::new("only one word").strong());
-            ui.label(RichText::new("that"));
-            ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("describes you. Select the"));
-            ui.label(RichText::new("first").strong());
-            ui.label(RichText::new("bubble after the word in the"));
-            ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("column."));
-
-        });
-        ui.add_space(15.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("C.").strong());
-            ui.add_space(5.0);
-            ui.label(RichText::new("Select"));
-            ui.label(RichText::new("only one word").strong());
-            ui.label(RichText::new("that"));
-            ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("describes you. Select the"));
-            ui.label(RichText::new("second").strong());
-            ui.label(RichText::new("bubble after the word in the"));
-            ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("column."));
-
-        });
-        ui.add_space(15.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("D.").strong());
-            ui.label(RichText::new("Use the same procedure to respond to the remaining groups of descriptive words. Feel free to look up the definitions if you are unsure what a word means."));
-
-        });
-        ui.add_space(15.0);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("REMEMBER:").strong());
-            ui.label(RichText::new("Select only"));
-            ui.label(RichText::new("one").strong());
-            ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("and"));
-            ui.label(RichText::new("one").strong());
-            ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-            ui.label(RichText::new("choice for each group."));
-
-        });
-        ui.add_space(20.0);
-
-        ui.group(|ui| {
-            
-            ui.label(RichText::new("EXAMPLE 1").strong());
-            ui.add_space(5.0);
             ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("The individual responding tends to be"));
-                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("enthusiastic").italics());
-                ui.label(RichText::new("and"));
-                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("satisfied").italics());
-                ui.label(RichText::new("in his or her selected setting."));
+                ui.label(RichText::new("1)").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("Responding").color(Color32::from_rgb(137, 207, 240)));
             });
-            ui.add_space(10.0);
+            ui.add_space(15.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("A.").strong());
+                ui.label(RichText::new("Study the first group of four words below while thinking about yourself in your selected setting or focus."));
 
-            egui::Grid::new("Example 1".to_owned())
-                .striped(true)
-                .spacing(Vec2 {x: 10.0, y: 0.0})
-                .min_row_height(4.0)
-                .show(ui, |ui|{
+            });
+            ui.add_space(15.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("B.").strong());
+                ui.add_space(5.0);
+                ui.label(RichText::new("Select"));
+                ui.label(RichText::new("only one word").strong());
+                ui.label(RichText::new("that"));
+                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("describes you. Click the"));
+                ui.label(RichText::new("first").strong());
+                ui.label(RichText::new("bubble after the word in the"));
+                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("column."));
 
-                    ui.label("");
+            });
+            ui.add_space(15.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("C.").strong());
+                ui.add_space(5.0);
+                ui.label(RichText::new("Select"));
+                ui.label(RichText::new("only one word").strong());
+                ui.label(RichText::new("that"));
+                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("describes you. Click the"));
+                ui.label(RichText::new("second").strong());
+                ui.label(RichText::new("bubble after the word in the"));
+                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("column."));
+
+            });
+            ui.add_space(15.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("D.").strong());
+                ui.label(RichText::new("Use the same procedure to respond to the remaining groups of descriptive words. Feel free to click on the word to read it's definition if you are unsure what it means."));
+
+            });
+            ui.add_space(15.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("REMEMBER:").strong());
+                ui.label(RichText::new("Select only"));
+                ui.label(RichText::new("one").strong());
+                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("and"));
+                ui.label(RichText::new("one").strong());
+                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.label(RichText::new("choice for each group."));
+
+            });
+            ui.add_space(20.0);
+
+            ui.group(|ui| {
+                
+                ui.label(RichText::new("EXAMPLE 1").strong());
+                ui.add_space(5.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("The individual responding tends to be"));
                     ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("enthusiastic").italics());
+                    ui.label(RichText::new("and"));
                     ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                    ui.end_row();
-
-                    ui.label(RichText::new("1".to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
-
-                    ui.end_row();
-                    ui.add_space(10.0);
-                    ui.label("enthusiastic".to_owned());
-                    ui.add_space(10.0);
-                    ui.radio(true, "");
-                    ui.radio(false, "");
-                    ui.end_row();
-
-                    ui.end_row();
-                    ui.add_space(10.0);
-                    ui.label("daring".to_owned());
-                    ui.add_space(10.0);
-                    ui.radio(false, "");
-                    ui.radio(false, "");
-                    ui.end_row();
-
-                    ui.end_row();
-                    ui.add_space(10.0);
-                    ui.label("diplomatic".to_owned());
-                    ui.add_space(10.0);
-                    ui.radio(false, "");
-                    ui.radio(false, "");
-                    ui.end_row();
-
-                    ui.end_row();
-                    ui.add_space(10.0);
-                    ui.label("satisfied".to_owned());
-                    ui.add_space(10.0);
-                    ui.radio(false, "");
-                    ui.radio(true, "");
-                    ui.end_row();
+                    ui.label(RichText::new("satisfied").italics());
+                    ui.label(RichText::new("in his or her selected setting."));
                 });
-        });
-    });
+                ui.add_space(10.0);
 
-    ui.add_space(10.0);
+                egui::Grid::new("Example 1".to_owned())
+                    .striped(true)
+                    .spacing(Vec2 {x: 10.0, y: 0.0})
+                    .min_row_height(4.0)
+                    .show(ui, |ui|{
+
+                        ui.label("");
+                        ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                        ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                        ui.end_row();
+
+                        ui.label(RichText::new("1".to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
+
+                        ui.end_row();
+                        ui.add_space(10.0);
+                        ui.label("enthusiastic".to_owned());
+                        ui.add_space(10.0);
+                        ui.radio(true, "");
+                        ui.radio(false, "");
+                        ui.end_row();
+
+                        ui.end_row();
+                        ui.add_space(10.0);
+                        ui.label("daring".to_owned());
+                        ui.add_space(10.0);
+                        ui.radio(false, "");
+                        ui.radio(false, "");
+                        ui.end_row();
+
+                        ui.end_row();
+                        ui.add_space(10.0);
+                        ui.label("diplomatic".to_owned());
+                        ui.add_space(10.0);
+                        ui.radio(false, "");
+                        ui.radio(false, "");
+                        ui.end_row();
+
+                        ui.end_row();
+                        ui.add_space(10.0);
+                        ui.label("satisfied".to_owned());
+                        ui.add_space(10.0);
+                        ui.radio(false, "");
+                        ui.radio(true, "");
+                        ui.end_row();
+                    });
+            });
+        });
+
+        ui.add_space(10.0);
+    });
 
 }
 
-fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {      
 
@@ -534,12 +556,38 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8,
             return vec![
 
                 GridMark {value: 1.0, step_size: 4.0},
+                GridMark {value: 2.0, step_size: 1.0},
+                GridMark {value: 3.0, step_size: 1.0},
+                GridMark {value: 4.0, step_size: 1.0},
+
                 GridMark {value: 5.0, step_size: 4.0},
+                GridMark {value: 6.0, step_size: 1.0},
+                GridMark {value: 7.0, step_size: 1.0},
+                GridMark {value: 8.0, step_size: 1.0},
+
                 GridMark {value: 9.0, step_size: 4.0},
+                GridMark {value: 10.0, step_size: 1.0},
+                GridMark {value: 11.0, step_size: 1.0},
+                GridMark {value: 12.0, step_size: 1.0},
+
                 GridMark {value: 13.0, step_size: 4.0},
+                GridMark {value: 14.0, step_size: 1.0},
+                GridMark {value: 15.0, step_size: 1.0},
+                GridMark {value: 16.0, step_size: 1.0},
+
                 GridMark {value: 17.0, step_size: 4.0},
+                GridMark {value: 18.0, step_size: 1.0},
+                GridMark {value: 19.0, step_size: 1.0},
+                GridMark {value: 20.0, step_size: 1.0},
+
                 GridMark {value: 21.0, step_size: 4.0},
+                GridMark {value: 22.0, step_size: 1.0},
+                GridMark {value: 23.0, step_size: 1.0},
+                GridMark {value: 24.0, step_size: 1.0},
+
                 GridMark {value: 25.0, step_size: 4.0},
+                GridMark {value: 26.0, step_size: 1.0},
+                GridMark {value: 27.0, step_size: 1.0},
                 GridMark {value: 28.0, step_size: 1.0},
             ]
         };
@@ -551,7 +599,9 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8,
             .show_y(false)
             .allow_drag(false)
             .allow_zoom(false)
+            .allow_scroll(false)
             .allow_boxed_zoom(false)
+            .show_background(true)
             .x_axis_formatter(x_fmt)
             .y_axis_formatter(y_fmt)
             .y_grid_spacer(y_spacer)
@@ -609,10 +659,33 @@ fn show_results_page(currentHighlight: &mut Choice, intensity: &mut (i8, i8, i8,
             _ => ()
 
         }
+
+        ui.separator();
+
+        ui.collapsing(RichText::new("Dimensional Intensity Index").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
+
+
+        });
+
+        ui.add_space(20.0);
+        ui.separator();
+
+        ui.collapsing(RichText::new("Profile Pattern").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
+
+            let seg: (u8, u8, u8, u8) = (intensity_to_segment(intensity.0),
+                                        intensity_to_segment(intensity.1),
+                                        intensity_to_segment(intensity.2),
+                                        intensity_to_segment(intensity.3));
+
+
+        });
     });
 }
 
-fn show_results_instructions(ui: &mut Ui) {}
+fn show_profile_section(intensity: &mut (u8, u8, u8, u8), ui: &mut Ui) {
+
+
+}
 
 fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
 
@@ -625,7 +698,7 @@ fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
 
 // Helper Functions
 
-fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8)) {
+fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (u8, u8, u8, u8), intensity: &mut (u8, u8, u8, u8)) {
 
     tally.0 = 0;
     tally.1 = 0;
@@ -653,15 +726,38 @@ fn process(responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), 
         }
     }
 
-    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
-    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(-0.2464025952 * tally.1 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
-    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(-0.1941614665  * tally.2 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
-    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(-0.2479183241  * tally.3 as f64))).clamp(0.0, 28.0) as i8; // Logistic Regression
+    intensity.0 = (27.38232853 / (1.0 + 0.297148753 * E.powf(-0.1801194362 * tally.0 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
+    intensity.1 = (28.13823356 / (1.0 + 1.242064677 * E.powf(-0.2464025952 * tally.1 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
+    intensity.2 = (29.51533099 / (1.0 + 2.209999802 * E.powf(-0.1941614665  * tally.2 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
+    intensity.3 = (27.31404101 / (1.0 + 0.5608447664 * E.powf(-0.2479183241  * tally.3 as f64))).clamp(1.0, 28.0) as u8; // Logistic Regression
 }
 
-fn intensity_to_segment(val: i8) -> i8 {
+fn intensity_to_segment(val: u8) -> u8 {
 
     return ((val - 1) / 4) + 1;
+}
+
+fn profilePatternLookup(profiles: Vec<Profile>, seg: (u8, u8, u8, u8)) -> Profile {
+
+    let firstDigit: u16 = seg.0 as u16 * 1000;
+    let secondDigit: u16 = seg.1 as u16 * 100;
+    let thirdDigit: u16 = seg.2 as u16 * 10;
+    let fourthDigit: u16 = seg.3 as u16 * 1;
+
+    let segPattern: u16 = firstDigit + secondDigit + thirdDigit + fourthDigit;
+
+    let mut prof: Profile = profiles[0].clone();
+
+    for profile in profiles {
+
+        if profile.patterns.contains(&segPattern) {
+
+            prof = profile;
+            break;
+        }
+    }
+
+    return prof;
 }
 
 fn show_d_highlights(ui: &mut Ui) {
@@ -766,6 +862,8 @@ fn show_d_highlights(ui: &mut Ui) {
             ui.end_row();
         });
     });
+
+    ui.add_space(25.0);
 }
 
 fn show_i_highlights(ui: &mut Ui) {
@@ -870,6 +968,8 @@ fn show_i_highlights(ui: &mut Ui) {
             ui.end_row();
         });
     });
+
+    ui.add_space(25.0);
 }
 
 fn show_s_highlights(ui: &mut Ui) {
@@ -972,6 +1072,8 @@ fn show_s_highlights(ui: &mut Ui) {
             ui.end_row();
         });
     });
+
+    ui.add_space(25.0);
 }
 
 fn show_c_highlights(ui: &mut Ui) {
@@ -1070,4 +1172,6 @@ fn show_c_highlights(ui: &mut Ui) {
             ui.end_row();
         });
     });
+
+    ui.add_space(25.0);
 }
