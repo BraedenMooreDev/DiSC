@@ -1,6 +1,6 @@
 use std::{fmt::Debug, f64::consts::E, ops::RangeInclusive};
 use eframe::epaint::RectShape;
-use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32, Style, Rect, Shape, Sense, plot::{Plot, Points, PlotPoints, PlotPoint, Line, PlotBounds, GridMark, GridInput}, accesskit::Point, Pos2};
+use egui::{Vec2, FontId, TextStyle, Ui, Context, RichText, Color32, Style, Rect, Shape, Sense, plot::{Plot, Points, PlotPoints, PlotPoint, Line, PlotBounds, GridMark, GridInput, BarChart, Bar}, accesskit::Point, Pos2};
 
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -8,6 +8,9 @@ enum Choice { A = 0, B = 1, C = 2, D = 3, E = 4, NONE = 5}
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 enum Page { Response = 0, Results = 1, Settings = 2}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum GraphType { Line = 0, Bar = 1 }
 
 #[derive(PartialEq, Clone, Debug)]
 struct Profile {
@@ -30,6 +33,9 @@ pub struct TemplateApp {
     
     #[serde(skip)]
     currentHighlight: Choice,
+
+    #[serde(skip)]
+    graphType: GraphType,
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     questions: Vec<Vec<(String, Choice, Choice)>>,
@@ -57,6 +63,7 @@ impl Default for TemplateApp {
             fontSizes: (30.0, 18.0, 14.0, 14.0, 10.0),
             currentPage: Page::Response,
             currentHighlight: Choice::NONE,
+            graphType: GraphType::Line,
             questions: vec![
                 vec![("enthusiastic".to_string(), Choice::B, Choice::B),
                     ("daring".to_string(), Choice::A, Choice::A),
@@ -265,7 +272,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { fontSizes, currentPage, currentHighlight, questions , responses , tally, intensity, profiles, currentProfile} = self;
+        let Self { fontSizes, currentPage, currentHighlight, graphType, questions , responses , tally, intensity, profiles, currentProfile} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -314,13 +321,13 @@ impl eframe::App for TemplateApp {
             }
 
             ui.separator();
-            ui.add_space(20.0);
+            ui.add_space(10.0);
 
             ui.set_min_width(ui.available_width());
 
             match currentPage {
                 Page::Response => show_response_page(currentPage, questions, responses, tally, intensity, ctx, ui),
-                Page::Results => show_results_page(currentHighlight, tally, intensity, ui),
+                Page::Results => show_results_page(currentHighlight, graphType, tally, intensity, ui),
                 Page::Settings => show_settings_page(fontSizes, ui)
             }
         });
@@ -338,6 +345,19 @@ impl eframe::App for TemplateApp {
 
 fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, Choice, Choice)>>, responses: &mut Vec<(Choice, Choice)>, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ctx: &Context, ui: &mut Ui) {
 
+    egui::Grid::new("Response Page ".to_owned())
+        .spacing(Vec2 {x: 10.0, y: 0.0})
+        .min_row_height(4.0)
+        .show(ui, |ui|{
+
+            ui.add_space(140.0);
+            ui.label(RichText::new("MOST").color(Color32::from_rgb(137, 207, 240)));
+            ui.label(RichText::new("LEAST").color(Color32::from_rgb(137, 207, 240)));
+            ui.end_row();
+        });
+
+        ui.add_space(2.0);
+
     egui::ScrollArea::vertical().show(ui, |ui| {
 
         egui::Grid::new("Response Page ".to_owned())
@@ -347,14 +367,6 @@ fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, C
         .show(ui, |ui|{
 
             for i in 0..questions.len() {
-
-                if i == 0 {
-
-                    ui.label("");
-                    ui.label(RichText::new("MOST").color(Color32::from_rgb(137, 207, 240)));
-                    ui.label(RichText::new("LEAST").color(Color32::from_rgb(137, 207, 240)));
-                    ui.end_row();
-                }
                 
                 ui.label(RichText::new((i + 1).to_string().to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
 
@@ -385,141 +397,143 @@ fn show_response_page(currentPage: &mut Page, questions: &mut Vec<Vec<(String, C
 
 fn show_response_instructions(ui: &mut Ui) {
 
-    ui.collapsing(RichText::new("Instructions").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
+    egui::CollapsingHeader::new(RichText::new("Instructions").strong().color(Color32::from_rgb(137, 207, 240)))
+        .default_open(true)
+        .show(ui, |ui| {
 
-        ui.add_space(10.0);
+            ui.add_space(10.0);
 
-        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
 
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("1)").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("Responding").color(Color32::from_rgb(137, 207, 240)));
-            });
-            ui.add_space(15.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("A.").strong());
-                ui.label(RichText::new("Study the first group of four words below while thinking about yourself in your selected setting or focus."));
-
-            });
-            ui.add_space(15.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("B.").strong());
-                ui.add_space(5.0);
-                ui.label(RichText::new("Select"));
-                ui.label(RichText::new("only one word").strong());
-                ui.label(RichText::new("that"));
-                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("describes you. Click the"));
-                ui.label(RichText::new("first").strong());
-                ui.label(RichText::new("bubble after the word in the"));
-                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("column."));
-
-            });
-            ui.add_space(15.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("C.").strong());
-                ui.add_space(5.0);
-                ui.label(RichText::new("Select"));
-                ui.label(RichText::new("only one word").strong());
-                ui.label(RichText::new("that"));
-                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("describes you. Click the"));
-                ui.label(RichText::new("second").strong());
-                ui.label(RichText::new("bubble after the word in the"));
-                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("column."));
-
-            });
-            ui.add_space(15.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("D.").strong());
-                ui.label(RichText::new("Use the same procedure to respond to the remaining groups of descriptive words. Feel free to click on the word to read it's definition if you are unsure what it means."));
-
-            });
-            ui.add_space(15.0);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("REMEMBER:").strong());
-                ui.label(RichText::new("Select only"));
-                ui.label(RichText::new("one").strong());
-                ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("and"));
-                ui.label(RichText::new("one").strong());
-                ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                ui.label(RichText::new("choice for each group."));
-
-            });
-            ui.add_space(20.0);
-
-            ui.group(|ui| {
-                
-                ui.label(RichText::new("EXAMPLE 1").strong());
-                ui.add_space(5.0);
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(RichText::new("The individual responding tends to be"));
-                    ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
-                    ui.label(RichText::new("enthusiastic").italics());
-                    ui.label(RichText::new("and"));
-                    ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                    ui.label(RichText::new("satisfied").italics());
-                    ui.label(RichText::new("in his or her selected setting."));
+                    ui.label(RichText::new("1)").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("Responding").color(Color32::from_rgb(137, 207, 240)));
                 });
-                ui.add_space(10.0);
+                ui.add_space(15.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("A.").strong());
+                    ui.label(RichText::new("Study the first group of four words below while thinking about yourself in your selected setting or focus."));
 
-                egui::Grid::new("Example 1".to_owned())
-                    .striped(true)
-                    .spacing(Vec2 {x: 10.0, y: 0.0})
-                    .min_row_height(4.0)
-                    .show(ui, |ui|{
+                });
+                ui.add_space(15.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("B.").strong());
+                    ui.add_space(5.0);
+                    ui.label(RichText::new("Select"));
+                    ui.label(RichText::new("only one word").strong());
+                    ui.label(RichText::new("that"));
+                    ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("describes you. Click the"));
+                    ui.label(RichText::new("first").strong());
+                    ui.label(RichText::new("bubble after the word in the"));
+                    ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("column."));
 
-                        ui.label("");
+                });
+                ui.add_space(15.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("C.").strong());
+                    ui.add_space(5.0);
+                    ui.label(RichText::new("Select"));
+                    ui.label(RichText::new("only one word").strong());
+                    ui.label(RichText::new("that"));
+                    ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("describes you. Click the"));
+                    ui.label(RichText::new("second").strong());
+                    ui.label(RichText::new("bubble after the word in the"));
+                    ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("column."));
+
+                });
+                ui.add_space(15.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("D.").strong());
+                    ui.label(RichText::new("Use the same procedure to respond to the remaining groups of descriptive words. Feel free to click on the word to read it's definition if you are unsure what it means."));
+
+                });
+                ui.add_space(15.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new("REMEMBER:").strong());
+                    ui.label(RichText::new("Select only"));
+                    ui.label(RichText::new("one").strong());
+                    ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("and"));
+                    ui.label(RichText::new("one").strong());
+                    ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                    ui.label(RichText::new("choice for each group."));
+
+                });
+                ui.add_space(20.0);
+
+                ui.group(|ui| {
+                    
+                    ui.label(RichText::new("EXAMPLE 1").strong());
+                    ui.add_space(5.0);
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(RichText::new("The individual responding tends to be"));
                         ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                        ui.label(RichText::new("enthusiastic").italics());
+                        ui.label(RichText::new("and"));
                         ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
-                        ui.end_row();
-
-                        ui.label(RichText::new("1".to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
-
-                        ui.end_row();
-                        ui.add_space(10.0);
-                        ui.label("enthusiastic".to_owned());
-                        ui.add_space(10.0);
-                        ui.radio(true, "");
-                        ui.radio(false, "");
-                        ui.end_row();
-
-                        ui.end_row();
-                        ui.add_space(10.0);
-                        ui.label("daring".to_owned());
-                        ui.add_space(10.0);
-                        ui.radio(false, "");
-                        ui.radio(false, "");
-                        ui.end_row();
-
-                        ui.end_row();
-                        ui.add_space(10.0);
-                        ui.label("diplomatic".to_owned());
-                        ui.add_space(10.0);
-                        ui.radio(false, "");
-                        ui.radio(false, "");
-                        ui.end_row();
-
-                        ui.end_row();
-                        ui.add_space(10.0);
-                        ui.label("satisfied".to_owned());
-                        ui.add_space(10.0);
-                        ui.radio(false, "");
-                        ui.radio(true, "");
-                        ui.end_row();
+                        ui.label(RichText::new("satisfied").italics());
+                        ui.label(RichText::new("in his or her selected setting."));
                     });
-            });
-        });
+                    ui.add_space(10.0);
 
-        ui.add_space(10.0);
-    });
+                    egui::Grid::new("Example 1".to_owned())
+                        .striped(true)
+                        .spacing(Vec2 {x: 10.0, y: 0.0})
+                        .min_row_height(4.0)
+                        .show(ui, |ui|{
+
+                            ui.label("");
+                            ui.label(RichText::new("MOST").strong().color(Color32::from_rgb(137, 207, 240)));
+                            ui.label(RichText::new("LEAST").strong().color(Color32::from_rgb(137, 207, 240)));
+                            ui.end_row();
+
+                            ui.label(RichText::new("1".to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
+
+                            ui.end_row();
+                            ui.add_space(10.0);
+                            ui.label("enthusiastic".to_owned());
+                            ui.add_space(10.0);
+                            ui.radio(true, "");
+                            ui.radio(false, "");
+                            ui.end_row();
+
+                            ui.end_row();
+                            ui.add_space(10.0);
+                            ui.label("daring".to_owned());
+                            ui.add_space(10.0);
+                            ui.radio(false, "");
+                            ui.radio(false, "");
+                            ui.end_row();
+
+                            ui.end_row();
+                            ui.add_space(10.0);
+                            ui.label("diplomatic".to_owned());
+                            ui.add_space(10.0);
+                            ui.radio(false, "");
+                            ui.radio(false, "");
+                            ui.end_row();
+
+                            ui.end_row();
+                            ui.add_space(10.0);
+                            ui.label("satisfied".to_owned());
+                            ui.add_space(10.0);
+                            ui.radio(false, "");
+                            ui.radio(true, "");
+                            ui.end_row();
+                        });
+                });
+            });
+
+            ui.add_space(10.0);
+        });
 
 }
 
-fn show_results_page(currentHighlight: &mut Choice, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, graphType: &mut GraphType, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {      
 
@@ -592,28 +606,6 @@ fn show_results_page(currentHighlight: &mut Choice, tally: &mut (i8, i8, i8, i8)
             ]
         };
 
-        Plot::new("Graph")
-            .data_aspect(6.5 / 28.0)
-            .view_aspect(0.75)
-            .show_x(false)
-            .show_y(false)
-            .allow_drag(false)
-            .allow_zoom(false)
-            .allow_scroll(false)
-            .allow_boxed_zoom(false)
-            .show_background(true)
-            .x_axis_formatter(x_fmt)
-            .y_axis_formatter(y_fmt)
-            .y_grid_spacer(y_spacer)
-            .show(ui, |plot_ui| {
-
-                let series: PlotPoints = PlotPoints::Owned(vec![PlotPoint::new(1, intensity.0), PlotPoint::new(2, intensity.1), PlotPoint::new(3, intensity.2), PlotPoint::new(4, intensity.3)]);
-                let line: egui::plot::Line = Line::new(series);                
-                plot_ui.line(line);
-
-                plot_ui.set_plot_bounds(PlotBounds::from_min_max([0.0, 0.0], [4.5, 28.0]));
-            });
-
         ui.set_min_width(ui.available_width());
         egui::Grid::new("Numbers")
             .num_columns(5)
@@ -628,13 +620,13 @@ fn show_results_page(currentHighlight: &mut Choice, tally: &mut (i8, i8, i8, i8)
                 if ui.selectable_label(*currentHighlight == Choice::C, RichText::new("S").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::C { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::C; }};
                 if ui.selectable_label(*currentHighlight == Choice::D, RichText::new("C").strong().color(Color32::from_rgb(137, 207, 240))).clicked() { if *currentHighlight == Choice::D { *currentHighlight = Choice::NONE; } else { *currentHighlight = Choice::D; }};
 
-                ui.end_row();
+                // ui.end_row();
 
-                ui.label(RichText::new("Tally"));
-                ui.label(&tally.0.to_string());
-                ui.label(&tally.1.to_string());
-                ui.label(&tally.2.to_string());
-                ui.label(&tally.3.to_string());
+                // ui.label(RichText::new("Tally"));
+                // ui.label(&tally.0.to_string());
+                // ui.label(&tally.1.to_string());
+                // ui.label(&tally.2.to_string());
+                // ui.label(&tally.3.to_string());
 
                 ui.end_row();
 
@@ -667,6 +659,55 @@ fn show_results_page(currentHighlight: &mut Choice, tally: &mut (i8, i8, i8, i8)
             _ => ()
 
         }
+
+        ui.separator();
+
+        ui.collapsing(RichText::new("Graph").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
+
+            ui.add_space(10.0);
+
+            ui.horizontal_wrapped(|ui| {
+
+                if ui.selectable_label(*graphType == GraphType::Line, "Line").clicked() { *graphType = GraphType::Line; }
+                if ui.selectable_label(*graphType == GraphType::Bar, "Bar").clicked() { *graphType = GraphType::Bar; }
+
+            });
+            ui.add_space(20.0);
+
+            Plot::new("Graph")
+                .data_aspect(6.5 / 28.0)
+                .view_aspect(0.75)
+                .show_x(false)
+                .show_y(false)
+                .height(500.0)
+                .allow_drag(false)
+                .allow_zoom(false)
+                .allow_scroll(false)
+                .allow_boxed_zoom(false)
+                .show_background(false)
+                .x_axis_formatter(x_fmt)
+                .y_axis_formatter(y_fmt)
+                .y_grid_spacer(y_spacer)
+                .show(ui, |plot_ui| {
+
+                    let series: PlotPoints = PlotPoints::Owned(vec![PlotPoint::new(1, intensity.0), PlotPoint::new(2, intensity.1), PlotPoint::new(3, intensity.2), PlotPoint::new(4, intensity.3)]);
+                    let line: egui::plot::Line = Line::new(series);      
+
+                    let dBar: egui::plot::Bar = Bar::new(1.0, intensity.0 as f64);
+                    let iBar: egui::plot::Bar = Bar::new(2.0, intensity.1 as f64);
+                    let sBar: egui::plot::Bar = Bar::new(3.0, intensity.2 as f64);
+                    let cBar: egui::plot::Bar = Bar::new(4.0, intensity.3 as f64);
+
+                    let barChart: egui::plot::BarChart = BarChart::new(vec![dBar, iBar, sBar, cBar]);   
+
+                    match graphType {
+                        GraphType::Line => plot_ui.line(line),
+                        GraphType::Bar => plot_ui.bar_chart(barChart)
+                    }
+
+                    plot_ui.set_plot_bounds(PlotBounds::from_min_max([0.0, 0.0], [4.5, 28.0]));
+                });
+        });
 
         ui.separator();
 
