@@ -16,8 +16,7 @@ enum GraphType { Line = 0, Bar = 1 }
 struct Profile {
     name: String,
     aspects: Vec<(String, String)>,
-    content: String,
-    patterns: Vec<u16>
+    content: String
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -238,11 +237,175 @@ impl Default for TemplateApp {
             intensity: (1, 1, 1, 1),
 
             profiles: vec![Profile {name: "Achiever".to_owned(),
-                                    aspects: vec![("Emotions:".to_owned(), "is industrious and diligent; displays frustration".to_owned())],
-                                    content: "The motivation of Achievers is largely internal and flows from deeply felt personal goals.".to_owned(),
-                                    patterns: vec![7674, 7674, 7672]}],
+                                    aspects: vec![("Emotions:".to_owned(), "is industrious and diligent; displays frustration".to_owned()),
+                                                    ("Goal:".to_owned(), "personal accomplishments, sometimes at the expense of the group's goal".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to achieve concrete results".to_owned()),
+                                                    ("Influences others by:".to_owned(), "accountability for own work".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "sets and completes key result areas for self".to_owned()),
+                                                    ("Overuses:".to_owned(), "self-reliance; absorption in the task".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes frustrated and impatient; becomes more of a\"do-er\" and less of a \"delegator\"".to_owned()),
+                                                    ("Fears".to_owned(), "others with competing or inferior work standards affecting results".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "less \"either-or\" thinking; cleaner task priorities; consideration of optional approaches; willingness to compromise short-term for long-range benefits".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Agent".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "accepts affection; rejects aggression".to_owned()),
+                                                    ("Goal:".to_owned(), "group acceptance".to_owned()),
+                                                    ("Judges others by:".to_owned(), "commitment to tolerate and include everyone".to_owned()),
+                                                    ("Influences others by:".to_owned(), "empathy; friendship".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "supports, harmonizes, empathizes; focuses on service".to_owned()),
+                                                    ("Overuses:".to_owned(), "kindness".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes persuasive, using information or key friendships if necessary".to_owned()),
+                                                    ("Fears".to_owned(), "dissent; conflict".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "strength in the realization of who they are and what they can do; firmness and self-assertion; ability to say \"no\" when appropriate".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Appraiser".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is driven to look good".to_owned()),
+                                                    ("Goal:".to_owned(), "\"victory\" with flair".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to initiate activities".to_owned()),
+                                                    ("Influences others by:".to_owned(), "competitive recognition".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "accomplishes goals with the team".to_owned()),
+                                                    ("Overuses:".to_owned(), "authority; ingenuity".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes restless, critical, impatient".to_owned()),
+                                                    ("Fears".to_owned(), "\"loss\" or \"failure\"; others' disapproval".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "individual follow-through; empathy when showing disapproval; steadier pace".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Counselor".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is approachable; shows affection and understanding".to_owned()),
+                                                    ("Goal:".to_owned(), "friendship; happiness".to_owned()),
+                                                    ("Judges others by:".to_owned(), "positive acceptance or others; ability to look for the good in people".to_owned()),
+                                                    ("Influences others by:".to_owned(), "personal relationships; \"open door\" policy".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "remains stable and predictable; develops a wide range of friendships; listens to others' feelings".to_owned()),
+                                                    ("Overuses:".to_owned(), "indirect approach; tolerance".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes overly flexible and intimate; is too trusting without differentiating among people".to_owned()),
+                                                    ("Fears".to_owned(), "pressuring people; being accused of causing harm".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "attention to realistic deadlines; initiative to complete the task".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Creative".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "accepts aggression; restrains expression".to_owned()),
+                                                    ("Goal:".to_owned(), "dominance; unique accomplishments".to_owned()),
+                                                    ("Judges others by:".to_owned(), "personal standards; progressive ideas for accomplishing tasks".to_owned()),
+                                                    ("Influences others by:".to_owned(), "ability to pace development of systems and innovative approaches".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "initiates or designs change".to_owned()),
+                                                    ("Overuses:".to_owned(), "bluntness; critical or condescending attitude".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes bored with routine work; sulks when restrained; acts independently".to_owned()),
+                                                    ("Fears".to_owned(), "lack of influence; failure to achieve their standards".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "warmth; tactful communication; effective team cooperation; recognition of existing sanctions".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Developer".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is concerned with meeting personal needs".to_owned()),
+                                                    ("Goal:".to_owned(), "new opportunities".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to meet the Developer's standards".to_owned()),
+                                                    ("Influences others by:".to_owned(), "finding solutions to problems; projecting a personal sense of power".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "avoids \"passing the buck\"; seeks new or innovative problem-solving methods".to_owned()),
+                                                    ("Overuses:".to_owned(), "control over people and situations to accomplish his or her own results".to_owned()),
+                                                    ("Under pressure:".to_owned(), "works alone to complete tasks; is belligerant if individualism is threatened or challenging opportunities disappear".to_owned()),
+                                                    ("Fears".to_owned(), "boredom; loss of control".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "patience, empathy; participation and collaboration with others; follow-through and attention to quality control".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Inspirational".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "accepts aggression; downplays need for affection".to_owned()),
+                                                    ("Goal:".to_owned(), "control of their environment or audience".to_owned()),
+                                                    ("Judges others by:".to_owned(), "projection of personal strength, character, and social power".to_owned()),
+                                                    ("Influences others by:".to_owned(), "charm, direction, intimidation; use of rewards".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "acts as a \"people mover\"; initiates, demands, compliments, disciplines".to_owned()),
+                                                    ("Overuses:".to_owned(), "attitude that \"the ends justify the means\"".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes manipulative, quarrelsome or belligerant".to_owned()),
+                                                    ("Fears".to_owned(), "weak behavior; loss of social status".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "genuine sensitivity; willingness to help others to succeed in their own personal development".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Investigator".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is dispassionate; demonstrates self-discipline".to_owned()),
+                                                    ("Goal:".to_owned(), "power through formal roles and positions of authority".to_owned()),
+                                                    ("Judges others by:".to_owned(), "use of factual information".to_owned()),
+                                                    ("Influences others by:".to_owned(), "determination, tenacity".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "offers comprehensive follow-through; works determinedly on tasks individuall or in a small group".to_owned()),
+                                                    ("Overuses:".to_owned(), "bluntness; suspicion of others".to_owned()),
+                                                    ("Under pressure:".to_owned(), "tends to internalize conflict; holds on to grudges".to_owned()),
+                                                    ("Fears".to_owned(), "involvement with the masses; responsibility to sell abstract ideas".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "flexibility; acceptance or others; personal involvement with others".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Objective Thinker".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "rejects interpersonal aggression".to_owned()),
+                                                    ("Goal:".to_owned(), "correctness".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to think logically".to_owned()),
+                                                    ("Influences others by:".to_owned(), "use of facts, dat, and logical arguments".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "defines and clarifies; obtains, evaluates, and tests information".to_owned()),
+                                                    ("Overuses:".to_owned(), "analysis".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes worrisome".to_owned()),
+                                                    ("Fears".to_owned(), "irrational acts; ridicule".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "self-disclosure; public discussion of their insights and opinions".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Perfectionist".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "displays competence; is restrained and cautious".to_owned()),
+                                                    ("Goal:".to_owned(), "stbility; predictble accomplishments".to_owned()),
+                                                    ("Judges others by:".to_owned(), "precise standards".to_owned()),
+                                                    ("Influences others by:".to_owned(), "attention to detail; accuracy".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "is conscientious; maintains standards; controls quality".to_owned()),
+                                                    ("Overuses:".to_owned(), "procedures and \"fail-safe\" controls; overdependence on people, products, and processes that have worked in past".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes tactful and diplomatic".to_owned()),
+                                                    ("Fears".to_owned(), "antogonism".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "role flexibility; independence and interdependence; belief in self-worth".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Persuader".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "trusts others; is enthusiastic".to_owned()),
+                                                    ("Goal:".to_owned(), "authority and prestige; status symbols".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to express themselves; flexibility".to_owned()),
+                                                    ("Influences others by:".to_owned(), "friendly, open manner; verbal skills".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "sells and closes; delegates responsibility; is poised and confident".to_owned()),
+                                                    ("Overuses:".to_owned(), "enthusiasm; selling ability; optimism".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes indecisive and is easily persuaded; becomes organized in order to look good".to_owned()),
+                                                    ("Fears".to_owned(), "fixed environment; complex relationships".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "challenging assignments; attention to task-oriented service and key details; objective data analysis".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Practitioner".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "wants to keep up with others in effort and technical performance".to_owned()),
+                                                    ("Goal:".to_owned(), "personal growth".to_owned()),
+                                                    ("Judges others by:".to_owned(), "self-discipline; position and promotions".to_owned()),
+                                                    ("Influences others by:".to_owned(), "confidence in their ability to master new skills; development of \"proper\" procedures and actions".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "is skilled in technical and people problem-solving; displays proficiency and specialization".to_owned()),
+                                                    ("Overuses:".to_owned(), "overattention to personal objectives; unrealistic expectations of others".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes restrained; is sensitive to criticism".to_owned()),
+                                                    ("Fears".to_owned(), "being too predictable; no recognition as an \"expert\"".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "genuine collaboration for common benefit; delegation of key tasks to appropriate individuals".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Promoter".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is willing to accept others".to_owned()),
+                                                    ("Goal:".to_owned(), "approval, popularity".to_owned()),
+                                                    ("Judges others by:".to_owned(), "verbal skills".to_owned()),
+                                                    ("Influences others by:".to_owned(), "praise, opportunities, favors".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "relieves tension; promotes projects and people, including him or herself".to_owned()),
+                                                    ("Overuses:".to_owned(), "praise, optimism".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes careless and sentimental; is disorganized".to_owned()),
+                                                    ("Fears".to_owned(), "loss of social acceptance and self-worth".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "control of time; objectivity; sense of urgency; emotional control; follow-through on promises and tasks".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Result-Oriented".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "verbalizes ego strength; displays rugged individualism".to_owned()),
+                                                    ("Goal:".to_owned(), "dominance and independence".to_owned()),
+                                                    ("Judges others by:".to_owned(), "ability to accomplish tasks quickly".to_owned()),
+                                                    ("Influences others by:".to_owned(), "force of character; diligence".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "persistence; doggedness".to_owned()),
+                                                    ("Overuses:".to_owned(), "impatience; \"win-lose\" competition".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes critical and fault-finding; resists participating with a team; may overstep boundaries".to_owned()),
+                                                    ("Fears".to_owned(), "others with take advantage of them; slowness, especially in task activities; being a pushover".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "explanation of their reasoning and consideration of other views and ideas about goals and solutions to problems; genuine concern for other; patience and humility".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Specialist".to_owned(),
+                                    aspects: vec![("Emotions:".to_owned(), "is calculatingly moderate; accommodates others".to_owned()),
+                                                    ("Goal:".to_owned(), "maintenance of the status quo; controlled environment".to_owned()),
+                                                    ("Judges others by:".to_owned(), "friendship standards; competence".to_owned()),
+                                                    ("Influences others by:".to_owned(), "consistent performance; accommodating others".to_owned()),
+                                                    ("Value to the organization:".to_owned(), "plans short term; is predictable, consistent; maintains steady pace".to_owned()),
+                                                    ("Overuses:".to_owned(), "modesty; low risk-taking; passive resistance to innovation".to_owned()),
+                                                    ("Under pressure:".to_owned(), "becomes adaptable to those in authority and think with the group".to_owned()),
+                                                    ("Fears".to_owned(), "change, disorganization".to_owned()),
+                                                    ("Would increase effectiveness through:".to_owned(), "public discussion of their ideas; self-confidence based on feedback; shortcut methods".to_owned())],
+                                    content: "".to_owned()},
+                            Profile {name: "Invalid".to_owned(),
+                                    aspects: vec![],
+                                    content: "".to_owned()}],
 
-            currentProfile: Profile { name: "".to_owned(), aspects: vec![], content: "".to_owned() , patterns: vec![] }
+            currentProfile: Profile { name: "".to_owned(), aspects: vec![], content: "".to_owned() }
         }
     }
 }
@@ -327,7 +490,7 @@ impl eframe::App for TemplateApp {
 
             match currentPage {
                 Page::Response => show_response_page(currentPage, questions, responses, tally, intensity, ctx, ui),
-                Page::Results => show_results_page(currentHighlight, graphType, tally, intensity, ui),
+                Page::Results => show_results_page(currentHighlight, profiles, currentProfile, graphType, tally, intensity, ui),
                 Page::Settings => show_settings_page(fontSizes, ui)
             }
         });
@@ -533,7 +696,7 @@ fn show_response_instructions(ui: &mut Ui) {
 
 }
 
-fn show_results_page(currentHighlight: &mut Choice, graphType: &mut GraphType, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_results_page(currentHighlight: &mut Choice, profiles: &mut Vec<Profile>, currentProfile: &mut Profile, graphType: &mut GraphType, tally: &mut (i8, i8, i8, i8), intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
 
     egui::ScrollArea::vertical().show(ui, |ui| {      
 
@@ -709,31 +872,45 @@ fn show_results_page(currentHighlight: &mut Choice, graphType: &mut GraphType, t
                 });
         });
 
-        ui.separator();
-
-        ui.collapsing(RichText::new("Dimensional Intensity Index").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
-
-
-        });
-
-        ui.add_space(20.0);
+        ui.add_space(10.0);
         ui.separator();
 
         ui.collapsing(RichText::new("Profile Pattern").strong().color(Color32::from_rgb(137, 207, 240)), |ui| {
 
-            let seg: (i8, i8, i8, i8) = (intensity_to_segment(intensity.0),
-                                        intensity_to_segment(intensity.1),
-                                        intensity_to_segment(intensity.2),
-                                        intensity_to_segment(intensity.3));
+            let seg: (i8, i8, i8, i8) = (intensity_to_segment(intensity.0), intensity_to_segment(intensity.1), intensity_to_segment(intensity.2), intensity_to_segment(intensity.3));
 
-
+            *currentProfile = profilePatternLookup(profiles, seg);
+            show_profile_section(currentProfile, ui);
         });
     });
 }
 
-fn show_profile_section(intensity: &mut (i8, i8, i8, i8), ui: &mut Ui) {
+fn show_profile_section(p: &mut Profile, ui: &mut Ui) {
 
+    ui.group(|ui| {
 
+        ui.add_space(5.0);
+        ui.label(RichText::new(p.name.to_owned() + " Pattern").strong());
+        ui.add_space(15.0);
+
+        ui.horizontal_wrapped(|ui| {
+
+            for pair in &p.aspects {
+
+                ui.small(RichText::new(pair.0.to_owned()).strong().color(Color32::from_rgb(137, 207, 240)));
+                ui.small(RichText::new(pair.1.to_owned()));
+                ui.end_row();
+            }
+        });
+
+        ui.add_space(20.0);
+
+        ui.horizontal_wrapped(|ui| {
+
+            ui.small(RichText::new(p.content.to_owned()));
+            ui.end_row();
+        });
+    });
 }
 
 fn show_settings_page(fontSizes: &mut (f32, f32, f32, f32, f32), ui: &mut Ui) {
@@ -786,27 +963,37 @@ fn intensity_to_segment(val: i8) -> i8 {
     return ((val - 1) / 4) + 1;
 }
 
-fn profilePatternLookup(profiles: Vec<Profile>, seg: (i8, i8, i8, i8)) -> Profile {
+fn profilePatternLookup(profiles: &mut Vec<Profile>, seg: (i8, i8, i8, i8)) -> Profile {
 
-    let firstDigit: u16 = seg.0 as u16 * 1000;
-    let secondDigit: u16 = seg.1 as u16 * 100;
-    let thirdDigit: u16 = seg.2 as u16 * 10;
-    let fourthDigit: u16 = seg.3 as u16 * 1;
+    let d = seg.0;
+    let i = seg.1;
+    let s = seg.2;
+    let c = seg.3;
 
-    let segPattern: u16 = firstDigit + secondDigit + thirdDigit + fourthDigit;
+    let mut num = 15;
 
-    let mut prof: Profile = profiles[0].clone();
+    if r(d, 5, 7) && r(i, 1, 4) && r(s, 5, 7) && r(c, 1, 4) { num = 0; }
+    else if r(d, 1, 5) && r(i, 5, 7)  && r(s, 5, 7) && r(c, 1, 4) && i < s { num = 1; }
+    else if r(d, 1, 7) && r(i, 5, 7) && r(s, 1, 4) && r(c, 5, 7) { num = 2; }
+    else if r(d, 1, 5) && r(i, 5, 7) && r(s, 5, 7) && r(c, 1, 4) && i >= s { num = 3; }
+    else if r(d, 5, 7) && r(i, 1, 4) && r(s, 1, 4) && r(c, 5, 7) { num = 4; }
+    else if r(d, 5, 7) && r(i, 1, 3) && r(s, 1, 4) && r(c, 1, 4) { num = 5; }
+    else if r(d, 5, 7) && r(i, 5, 7) && r(s, 1, 7) && r(c, 1, 4) { num = 6; }
+    else if r(d, 5, 7) && r(i, 1, 4) && r(s, 5, 7) && r(c, 5, 7) { num = 7; }
+    else if r(d, 1, 4) && r(i, 1, 4) && r(s, 1, 4) && r(c, 5, 7) { num = 8; }
+    else if r(d, 1, 4) && r(i, 1, 4) && r(s, 5, 7) && r(c, 5, 7) { num = 9; }
+    else if r(d, 5, 6) && r(i, 6, 7) && r(s, 1, 5) && r(c, 1, 4) && d < i { num = 10; }
+    else if r(d, 1, 4) && r(i, 5, 7) && r(s, 1, 7) && r(c, 5, 7) { num = 11; }
+    else if r(d, 1, 4) && r(i, 5, 7) && r(s, 1, 4) && r(c, 1, 4) { num = 12; }
+    else if r(d, 5, 7) && r(i, 4, 6) && r(s, 1, 5) && r(c, 1, 4) { num = 13; }
+    else if r(d, 1, 4) && r(i, 1, 4) && r(s, 5, 7) && r(c, 1, 4) { num = 14; }
 
-    for profile in profiles {
+    return profiles[num].clone();
+}
 
-        if profile.patterns.contains(&segPattern) {
+fn r(val: i8, low: i8, high: i8) -> bool {
 
-            prof = profile;
-            break;
-        }
-    }
-
-    return prof;
+    return val >= low && val <= high;
 }
 
 fn show_d_highlights(ui: &mut Ui) {
