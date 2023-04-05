@@ -92,7 +92,7 @@ impl Default for TemplateApp {
                 vec![("gentle".to_string(), Choice::C, Choice::C),
                     ("persuasive".to_string(), Choice::B, Choice::E),
                     ("humble".to_string(), Choice::E, Choice::D),
-                    ("original".to_string(), Choice::E, Choice::A)],
+                    ("original".to_string(), Choice::NONE, Choice::A)],
                 
                 vec![("expressive".to_string(), Choice::B, Choice::B),
                     ("conscientious".to_string(), Choice::D, Choice::D),
